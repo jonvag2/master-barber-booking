@@ -1,0 +1,148 @@
+import React from "react";
+import { Scissors, Star, User, Sparkles, Crown } from "lucide-react";
+import type { Barbershop, Barber, Service } from "./types";
+
+export const barbershops: Barbershop[] = [
+  {
+    id: "barber-central",
+    name: "Master Barber Central",
+    address: "Av. Principal 123, Centro",
+    rating: 4.9,
+    image: "🏢",
+    phone: "+1 234 567 8901",
+    description: "Nuestra sucursal insignia en el corazón de la ciudad",
+  },
+  {
+    id: "barber-norte",
+    name: "Master Barber Norte",
+    address: "Blvd. Norte 456, Zona Norte",
+    rating: 4.8,
+    image: "🏬",
+    phone: "+1 234 567 8902",
+    description: "Experiencia premium en la zona norte",
+  },
+  {
+    id: "barber-sur",
+    name: "Master Barber Sur",
+    address: "Calle Sur 789, Plaza Sur",
+    rating: 4.7,
+    image: "🏛️",
+    phone: "+1 234 567 8903",
+    description: "Tu barbería de confianza en el sur",
+  },
+];
+
+export const barbers: Barber[] = [
+  {
+    id: "1",
+    username: "carlos",
+    name: "Carlos Mendoza",
+    specialty: "Cortes Clásicos & Fade",
+    rating: 4.9,
+    experience: "8 años",
+    barbershopId: "barber-central",
+    availableSlots: ["09:00", "10:00", "11:00", "14:00", "15:00", "16:00"],
+    clients: 1250,
+  },
+  {
+    id: "2",
+    username: "miguel",
+    name: "Miguel Ángel",
+    specialty: "Diseños & Barba",
+    rating: 4.8,
+    experience: "5 años",
+    barbershopId: "barber-central",
+    availableSlots: ["09:30", "10:30", "11:30", "14:30", "15:30", "17:00"],
+    clients: 890,
+  },
+  {
+    id: "3",
+    username: "roberto",
+    name: "Roberto Silva",
+    specialty: "Corte Moderno & Color",
+    rating: 4.9,
+    experience: "10 años",
+    barbershopId: "barber-norte",
+    availableSlots: ["09:00", "10:00", "12:00", "15:00", "16:00", "18:00"],
+    clients: 2100,
+  },
+  {
+    id: "4",
+    username: "alejandro",
+    name: "Alejandro Cruz",
+    specialty: "Especialista VIP",
+    rating: 5.0,
+    experience: "12 años",
+    barbershopId: "barber-norte",
+    availableSlots: ["10:00", "11:00", "14:00", "16:00", "17:00"],
+    clients: 3200,
+  },
+  {
+    id: "5",
+    username: "david",
+    name: "David Ramírez",
+    specialty: "Cortes Infantiles",
+    rating: 4.7,
+    experience: "4 años",
+    barbershopId: "barber-sur",
+    availableSlots: ["09:00", "10:30", "12:00", "14:00", "15:30", "17:00"],
+    clients: 650,
+  },
+  {
+    id: "6",
+    username: "fernando",
+    name: "Fernando López",
+    specialty: "Afeitado Clásico",
+    rating: 4.8,
+    experience: "7 años",
+    barbershopId: "barber-sur",
+    availableSlots: ["09:30", "11:00", "13:00", "15:00", "16:30", "18:30"],
+    clients: 1100,
+  },
+];
+
+export const services: Service[] = [
+  {
+    id: "corte-caballero",
+    name: "Corte Caballero",
+    price: 25,
+    duration: 30,
+    description: "Corte clásico o moderno con acabado profesional",
+    icon: <Scissors className="w-6 h-6" />,
+  },
+  {
+    id: "barba-toalla",
+    name: "Barba & Toalla Caliente",
+    price: 20,
+    duration: 25,
+    description: "Afeitado tradicional con toalla caliente",
+    icon: <Sparkles className="w-6 h-6" />,
+  },
+  {
+    id: "combo-full",
+    name: "Combo Full",
+    price: 40,
+    duration: 50,
+    description: "Corte + Barba completo",
+    icon: <Star className="w-6 h-6" />,
+  },
+  {
+    id: "corte-nino",
+    name: "Corte Niño",
+    price: 18,
+    duration: 25,
+    description: "Corte para los más pequeños",
+    icon: <User className="w-4 h-4" />,
+  },
+  {
+    id: "paquete-vip",
+    name: "Paquete VIP",
+    price: 75,
+    duration: 90,
+    description: "Corte + Barba + Tratamiento Facial + Masaje",
+    icon: <Crown className="w-6 h-6" />,
+    isVip: true,
+  },
+];
+
+export default {};

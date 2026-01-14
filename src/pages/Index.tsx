@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { 
   Scissors, 
@@ -19,215 +19,12 @@ import {
   Share2
 } from "lucide-react";
 
-// Types
-interface Barbershop {
-  id: string;
-  name: string;
-  address: string;
-  rating: number;
-  image: string;
-  phone: string;
-  description: string;
-}
-
-interface Barber {
-  id: string;
-  username: string;
-  name: string;
-  specialty: string;
-  rating: number;
-  experience: string;
-  barbershopId: string;
-  availableSlots: string[];
-  clients: number;
-}
-
-interface Service {
-  id: string;
-  name: string;
-  price: number;
-  duration: number;
-  description: string;
-  icon: React.ReactNode;
-  isVip?: boolean;
-}
-
-interface BookingState {
-  service: Service | null;
-  modality: "barbershop" | "home" | null;
-  date: string | null;
-  time: string | null;
-  name: string;
-  phone: string;
-  address: string;
-}
-
-// Barbershops Data
-const barbershops: Barbershop[] = [
-  {
-    id: "barber-central",
-    name: "Master Barber Central",
-    address: "Av. Principal 123, Centro",
-    rating: 4.9,
-    image: "🏢",
-    phone: "+1 234 567 8901",
-    description: "Nuestra sucursal insignia en el corazón de la ciudad",
-  },
-  {
-    id: "barber-norte",
-    name: "Master Barber Norte",
-    address: "Blvd. Norte 456, Zona Norte",
-    rating: 4.8,
-    image: "🏬",
-    phone: "+1 234 567 8902",
-    description: "Experiencia premium en la zona norte",
-  },
-  {
-    id: "barber-sur",
-    name: "Master Barber Sur",
-    address: "Calle Sur 789, Plaza Sur",
-    rating: 4.7,
-    image: "🏛️",
-    phone: "+1 234 567 8903",
-    description: "Tu barbería de confianza en el sur",
-  },
-];
-
-// Barbers Data
-const barbers: Barber[] = [
-  {
-    id: "1",
-    username: "carlos",
-    name: "Carlos Mendoza",
-    specialty: "Cortes Clásicos & Fade",
-    rating: 4.9,
-    experience: "8 años",
-    barbershopId: "barber-central",
-    availableSlots: ["09:00", "10:00", "11:00", "14:00", "15:00", "16:00"],
-    clients: 1250,
-  },
-  {
-    id: "2",
-    username: "miguel",
-    name: "Miguel Ángel",
-    specialty: "Diseños & Barba",
-    rating: 4.8,
-    experience: "5 años",
-    barbershopId: "barber-central",
-    availableSlots: ["09:30", "10:30", "11:30", "14:30", "15:30", "17:00"],
-    clients: 890,
-  },
-  {
-    id: "3",
-    username: "roberto",
-    name: "Roberto Silva",
-    specialty: "Corte Moderno & Color",
-    rating: 4.9,
-    experience: "10 años",
-    barbershopId: "barber-norte",
-    availableSlots: ["09:00", "10:00", "12:00", "15:00", "16:00", "18:00"],
-    clients: 2100,
-  },
-  {
-    id: "4",
-    username: "alejandro",
-    name: "Alejandro Cruz",
-    specialty: "Especialista VIP",
-    rating: 5.0,
-    experience: "12 años",
-    barbershopId: "barber-norte",
-    availableSlots: ["10:00", "11:00", "14:00", "16:00", "17:00"],
-    clients: 3200,
-  },
-  {
-    id: "5",
-    username: "david",
-    name: "David Ramírez",
-    specialty: "Cortes Infantiles",
-    rating: 4.7,
-    experience: "4 años",
-    barbershopId: "barber-sur",
-    availableSlots: ["09:00", "10:30", "12:00", "14:00", "15:30", "17:00"],
-    clients: 650,
-  },
-  {
-    id: "6",
-    username: "fernando",
-    name: "Fernando López",
-    specialty: "Afeitado Clásico",
-    rating: 4.8,
-    experience: "7 años",
-    barbershopId: "barber-sur",
-    availableSlots: ["09:30", "11:00", "13:00", "15:00", "16:30", "18:30"],
-    clients: 1100,
-  },
-];
-
-// Services Data
-const services: Service[] = [
-  {
-    id: "corte-caballero",
-    name: "Corte Caballero",
-    price: 25,
-    duration: 30,
-    description: "Corte clásico o moderno con acabado profesional",
-    icon: <Scissors className="w-6 h-6" />,
-  },
-  {
-    id: "barba-toalla",
-    name: "Barba & Toalla Caliente",
-    price: 20,
-    duration: 25,
-    description: "Afeitado tradicional con toalla caliente",
-    icon: <Sparkles className="w-6 h-6" />,
-  },
-  {
-    id: "combo-full",
-    name: "Combo Full",
-    price: 40,
-    duration: 50,
-    description: "Corte + Barba completo",
-    icon: <Star className="w-6 h-6" />,
-  },
-  {
-    id: "corte-nino",
-    name: "Corte Niño",
-    price: 18,
-    duration: 25,
-    description: "Corte para los más pequeños",
-    icon: <User className="w-4 h-4" />,
-  },
-  {
-    id: "paquete-vip",
-    name: "Paquete VIP",
-    price: 75,
-    duration: 90,
-    description: "Corte + Barba + Tratamiento Facial + Masaje",
-    icon: <Crown className="w-6 h-6" />,
-    isVip: true,
-  },
-];
-
-// Generate next 5 days
-const generateDates = () => {
-  const days = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-  const dates = [];
-  
-  for (let i = 0; i < 5; i++) {
-    const date = new Date();
-    date.setDate(date.getDate() + i);
-    dates.push({
-      day: days[date.getDay()],
-      number: date.getDate(),
-      full: date.toISOString().split('T')[0],
-      month: date.toLocaleDateString('es', { month: 'short' })
-    });
-  }
-  
-  return dates;
-};
-
-const TOTAL_STEPS = 5;
+import type { Barbershop, Barber, Service, BookingState } from "./booking/types";
+import { generateDates, TOTAL_STEPS } from "./booking/utils";
+import { getBarbershops, getBarbers, getServices, createBooking } from "../lib/api";
+import { useBarbershops } from "../hooks/useBarbershops";
+import { useBarbers } from "../hooks/useBarbers";
+import { useServices } from "../hooks/useServices";
 
 const Index = () => {
   const [searchParams] = useSearchParams();
@@ -236,9 +33,23 @@ const Index = () => {
   const barbershopId = searchParams.get("barbershop");
   const barberUsername = searchParams.get("barber");
 
-  // Find current barbershop and barber from URL
-  const currentBarbershop = barbershops.find(b => b.id === barbershopId);
-  const currentBarber = barbers.find(b => b.username === barberUsername && b.barbershopId === barbershopId);
+  const getServiceIcon = (id: string) => {
+    switch (id) {
+      case 'corte-caballero':
+        return <Scissors className="w-6 h-6" />;
+      case 'barba-toalla':
+        return <Sparkles className="w-6 h-6" />;
+      case 'combo-full':
+        return <Star className="w-6 h-6" />;
+      case 'corte-nino':
+        return <User className="w-4 h-4" />;
+      case 'paquete-vip':
+        return <Crown className="w-6 h-6" />;
+      default:
+        return <Scissors className="w-6 h-6" />;
+    }
+  };
+
 
   const [currentStep, setCurrentStep] = useState(0);
   const [booking, setBooking] = useState<BookingState>({
@@ -251,13 +62,21 @@ const Index = () => {
     address: "",
   });
 
+  const { data: barbershopsData = [], isLoading: shopsLoading } = useBarbershops();
+  const { data: barbersData = [], isLoading: barbersLoading } = useBarbers();
+  const { data: servicesData = [], isLoading: servicesLoading } = useServices();
+
   const dates = useMemo(() => generateDates(), []);
+
+  // Resolve current barbershop and barber from fetched data (used by subsequent memos)
+  const currentBarbershop = barbershopsData.find(b => b.id === barbershopId);
+  const currentBarber = barbersData.find(b => b.username === barberUsername && b.barbershopId === barbershopId);
 
   // Get barbers for selected barbershop
   const availableBarbers = useMemo(() => {
     if (!currentBarbershop) return [];
-    return barbers.filter(b => b.barbershopId === currentBarbershop.id);
-  }, [currentBarbershop]);
+    return barbersData.filter(b => b.barbershopId === currentBarbershop.id);
+  }, [currentBarbershop, barbersData]);
 
   // Get available time slots based on barber
   const availableTimeSlots = useMemo(() => {
@@ -284,12 +103,13 @@ const Index = () => {
       case 1: return booking.service !== null;
       case 2: return booking.modality !== null;
       case 3: return booking.date !== null && booking.time !== null;
-      case 4: 
-        const hasBasicInfo = booking.name.trim() !== "" && booking.phone.trim() !== "";
-        if (booking.modality === "home") {
-          return hasBasicInfo && booking.address.trim() !== "";
+        case 4: {
+          const hasBasicInfo = booking.name.trim() !== "" && booking.phone.trim() !== "";
+          if (booking.modality === "home") {
+            return hasBasicInfo && booking.address.trim() !== "";
+          }
+          return hasBasicInfo;
         }
-        return hasBasicInfo;
       default: return true;
     }
   };
@@ -331,6 +151,8 @@ _Confirmación pendiente_`;
   const selectedDate = dates.find(d => d.full === booking.date);
   const totalPrice = (booking.service?.price || 0) + (booking.modality === "home" ? 10 : 0);
 
+  
+
   // ========== LANDING: No barbershop selected ==========
   if (!barbershopId) {
     return (
@@ -369,26 +191,32 @@ _Confirmación pendiente_`;
           </h2>
           
           <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {barbershops.map((shop) => (
-              <button
-                key={shop.id}
-                onClick={() => navigate(`/?barbershop=${shop.id}`)}
-                className="card-premium text-left hover:scale-[1.02] transition-transform"
-              >
-                <div className="text-5xl mb-4">{shop.image}</div>
-                <h3 className="font-display text-xl font-semibold mb-2">{shop.name}</h3>
-                <p className="text-muted-foreground text-sm flex items-center gap-1 mb-2">
-                  <MapPin className="w-3 h-3" /> {shop.address}
-                </p>
-                <div className="flex items-center gap-1">
-                  <Star className="w-4 h-4 fill-primary text-primary" />
-                  <span className="text-primary font-medium">{shop.rating}</span>
-                </div>
-                <div className="mt-4 flex items-center gap-2 text-primary font-medium">
-                  Ver barberos <ChevronRight className="w-4 h-4" />
-                </div>
-              </button>
-            ))}
+            {shopsLoading ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="card-premium animate-pulse h-40" />
+              ))
+            ) : (
+              barbershopsData.map((shop) => (
+                <button
+                  key={shop.id}
+                  onClick={() => navigate(`/?barbershop=${shop.id}`)}
+                  className="card-premium text-left hover:scale-[1.02] transition-transform"
+                >
+                  <div className="text-5xl mb-4">{shop.image}</div>
+                  <h3 className="font-display text-xl font-semibold mb-2">{shop.name}</h3>
+                  <p className="text-muted-foreground text-sm flex items-center gap-1 mb-2">
+                    <MapPin className="w-3 h-3" /> {shop.address}
+                  </p>
+                  <div className="flex items-center gap-1">
+                    <Star className="w-4 h-4 fill-primary text-primary" />
+                    <span className="text-primary font-medium">{shop.rating}</span>
+                  </div>
+                  <div className="mt-4 flex items-center gap-2 text-primary font-medium">
+                    Ver barberos <ChevronRight className="w-4 h-4" />
+                  </div>
+                </button>
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -586,7 +414,7 @@ _Confirmación pendiente_`;
             </p>
 
             <div className="space-y-4 max-w-lg mx-auto">
-              {services.map((service) => (
+              {servicesData.map((service) => (
                 <button
                   key={service.id}
                   onClick={() => updateBooking({ service })}
@@ -597,8 +425,8 @@ _Confirmación pendiente_`;
                   <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${
                     service.isVip ? "gradient-gold" : "bg-secondary"
                   }`}>
-                    <span className={service.isVip ? "text-primary-foreground" : "text-primary"}>
-                      {service.icon}
+                      <span className={service.isVip ? "text-primary-foreground" : "text-primary"}>
+                      {service.icon || getServiceIcon(service.id)}
                     </span>
                   </div>
                   <div className="flex-1">
