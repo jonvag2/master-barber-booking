@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
 import { 
   Scissors, 
   Star, 
@@ -14,10 +13,29 @@ import {
   User,
   Check,
   Crown,
-  Sparkles
+  Sparkles,
+  Building2
 } from "lucide-react";
 
 // Types
+interface Barbershop {
+  id: string;
+  name: string;
+  address: string;
+  rating: number;
+  image: string;
+}
+
+interface Barber {
+  id: string;
+  name: string;
+  specialty: string;
+  rating: number;
+  experience: string;
+  barbershopId: string;
+  availableSlots: string[];
+}
+
 interface Service {
   id: string;
   name: string;
@@ -29,6 +47,8 @@ interface Service {
 }
 
 interface BookingState {
+  barbershop: Barbershop | null;
+  barber: Barber | null;
   service: Service | null;
   modality: "barbershop" | "home" | null;
   date: string | null;
@@ -37,6 +57,89 @@ interface BookingState {
   phone: string;
   address: string;
 }
+
+// Barbershops Data
+const barbershops: Barbershop[] = [
+  {
+    id: "barber-central",
+    name: "Master Barber Central",
+    address: "Av. Principal 123, Centro",
+    rating: 4.9,
+    image: "🏢",
+  },
+  {
+    id: "barber-norte",
+    name: "Master Barber Norte",
+    address: "Blvd. Norte 456, Zona Norte",
+    rating: 4.8,
+    image: "🏬",
+  },
+  {
+    id: "barber-sur",
+    name: "Master Barber Sur",
+    address: "Calle Sur 789, Plaza Sur",
+    rating: 4.7,
+    image: "🏛️",
+  },
+];
+
+// Barbers Data
+const barbers: Barber[] = [
+  {
+    id: "carlos",
+    name: "Carlos Mendoza",
+    specialty: "Cortes Clásicos & Fade",
+    rating: 4.9,
+    experience: "8 años",
+    barbershopId: "barber-central",
+    availableSlots: ["09:00", "10:00", "11:00", "14:00", "15:00", "16:00"],
+  },
+  {
+    id: "miguel",
+    name: "Miguel Ángel",
+    specialty: "Diseños & Barba",
+    rating: 4.8,
+    experience: "5 años",
+    barbershopId: "barber-central",
+    availableSlots: ["09:30", "10:30", "11:30", "14:30", "15:30", "17:00"],
+  },
+  {
+    id: "roberto",
+    name: "Roberto Silva",
+    specialty: "Corte Moderno & Color",
+    rating: 4.9,
+    experience: "10 años",
+    barbershopId: "barber-norte",
+    availableSlots: ["09:00", "10:00", "12:00", "15:00", "16:00", "18:00"],
+  },
+  {
+    id: "alejandro",
+    name: "Alejandro Cruz",
+    specialty: "Especialista VIP",
+    rating: 5.0,
+    experience: "12 años",
+    barbershopId: "barber-norte",
+    availableSlots: ["10:00", "11:00", "14:00", "16:00", "17:00"],
+  },
+  {
+    id: "david",
+    name: "David Ramírez",
+    specialty: "Cortes Infantiles",
+    rating: 4.7,
+    experience: "4 años",
+    barbershopId: "barber-sur",
+    availableSlots: ["09:00", "10:30", "12:00", "14:00", "15:30", "17:00"],
+  },
+  {
+    id: "fernando",
+    name: "Fernando López",
+    specialty: "Afeitado Clásico",
+    rating: 4.8,
+    experience: "7 años",
+    barbershopId: "barber-sur",
+    availableSlots: ["09:30", "11:00", "13:00", "15:00", "16:30", "18:30"],
+  },
+];
 
 // Services Data
 const services: Service[] = [
@@ -83,13 +186,6 @@ const services: Service[] = [
   },
 ];
 
-// Time slots
-const timeSlots = [
-  "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
-  "12:00", "14:00", "14:30", "15:00", "15:30", "16:00",
-  "16:30", "17:00", "17:30", "18:00", "18:30", "19:00"
-];
-
 // Generate next 5 days
 const generateDates = () => {
   const days = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
@@ -109,12 +205,13 @@ const generateDates = () => {
   return dates;
 };
 
+const TOTAL_STEPS = 7;
+
 const Index = () => {
-  const [searchParams] = useSearchParams();
-  const barberName = searchParams.get("barber") || "Elite";
-  
   const [currentStep, setCurrentStep] = useState(0);
   const [booking, setBooking] = useState<BookingState>({
+    barbershop: null,
+    barber: null,
     service: null,
     modality: null,
     date: null,
@@ -126,7 +223,19 @@ const Index = () => {
 
   const dates = useMemo(() => generateDates(), []);
 
-  const nextStep = () => setCurrentStep((prev) => Math.min(prev + 1, 5));
+  // Get barbers for selected barbershop
+  const availableBarbers = useMemo(() => {
+    if (!booking.barbershop) return [];
+    return barbers.filter(b => b.barbershopId === booking.barbershop?.id);
+  }, [booking.barbershop]);
+
+  // Get available time slots based on barber
+  const availableTimeSlots = useMemo(() => {
+    if (!booking.barber) return [];
+    return booking.barber.availableSlots;
+  }, [booking.barber]);
+
+  const nextStep = () => setCurrentStep((prev) => Math.min(prev + 1, TOTAL_STEPS));
   const prevStep = () => setCurrentStep((prev) => Math.max(prev - 1, 0));
 
   const updateBooking = (updates: Partial<BookingState>) => {
@@ -135,10 +244,12 @@ const Index = () => {
 
   const canProceed = () => {
     switch (currentStep) {
-      case 1: return booking.service !== null;
-      case 2: return booking.modality !== null;
-      case 3: return booking.date !== null && booking.time !== null;
-      case 4: 
+      case 1: return booking.barbershop !== null;
+      case 2: return booking.barber !== null;
+      case 3: return booking.service !== null;
+      case 4: return booking.modality !== null;
+      case 5: return booking.date !== null && booking.time !== null;
+      case 6: 
         const hasBasicInfo = booking.name.trim() !== "" && booking.phone.trim() !== "";
         if (booking.modality === "home") {
           return hasBasicInfo && booking.address.trim() !== "";
@@ -149,7 +260,10 @@ const Index = () => {
   };
 
   const generateWhatsAppMessage = () => {
-    const message = `🪒 *RESERVA MASTER BARBER ${barberName.toUpperCase()}*
+    const message = `🪒 *RESERVA MASTER BARBER*
+
+🏢 *Sucursal:* ${booking.barbershop?.name}
+✂️ *Barbero:* ${booking.barber?.name}
 
 📋 *Servicio:* ${booking.service?.name}
 💰 *Precio:* $${booking.service?.price}
@@ -191,7 +305,7 @@ _Confirmación pendiente_`;
               <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold mb-2">
                 MASTER <span className="gold-text">BARBER</span>
               </h1>
-              <p className="text-2xl md:text-3xl font-display text-primary">{barberName}</p>
+              <p className="text-2xl md:text-3xl font-display text-muted-foreground">Red de Barberías Premium</p>
             </div>
 
             {/* Trust indicators */}
@@ -224,7 +338,7 @@ _Confirmación pendiente_`;
             <div className="grid grid-cols-3 gap-4 mt-16 max-w-md w-full">
               {[
                 { icon: <Clock className="w-5 h-5" />, label: "Sin esperas" },
-                { icon: <MapPin className="w-5 h-5" />, label: "Servicio a domicilio" },
+                { icon: <MapPin className="w-5 h-5" />, label: "3 sucursales" },
                 { icon: <Crown className="w-5 h-5" />, label: "Experiencia VIP" },
               ].map((feature, i) => (
                 <div key={i} className="flex flex-col items-center gap-2 text-muted-foreground">
@@ -237,6 +351,96 @@ _Confirmación pendiente_`;
         );
 
       case 1:
+        return (
+          <div className="slide-up">
+            <h2 className="font-display text-3xl font-bold text-center mb-2">
+              Elige tu <span className="gold-text">Barbería</span>
+            </h2>
+            <p className="text-muted-foreground text-center mb-8">
+              Selecciona la sucursal más cercana a ti
+            </p>
+
+            <div className="space-y-4 max-w-lg mx-auto">
+              {barbershops.map((shop) => (
+                <button
+                  key={shop.id}
+                  onClick={() => updateBooking({ barbershop: shop, barber: null, time: null })}
+                  className={`card-premium w-full text-left flex items-center gap-4 ${
+                    booking.barbershop?.id === shop.id ? "card-selected" : ""
+                  }`}
+                >
+                  <div className="w-16 h-16 rounded-xl bg-secondary flex items-center justify-center text-3xl">
+                    {shop.image}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg">{shop.name}</h3>
+                    <p className="text-muted-foreground text-sm flex items-center gap-1">
+                      <MapPin className="w-3 h-3" /> {shop.address}
+                    </p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <Star className="w-4 h-4 fill-primary text-primary" />
+                      <span className="text-sm text-primary font-medium">{shop.rating}</span>
+                    </div>
+                  </div>
+                  {booking.barbershop?.id === shop.id && (
+                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                      <Check className="w-5 h-5 text-primary-foreground" />
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 2:
+        return (
+          <div className="slide-up">
+            <h2 className="font-display text-3xl font-bold text-center mb-2">
+              Elige tu <span className="gold-text">Barbero</span>
+            </h2>
+            <p className="text-muted-foreground text-center mb-2">
+              Profesionales disponibles en {booking.barbershop?.name}
+            </p>
+            <p className="text-primary text-center text-sm mb-8">
+              Cada barbero tiene su propia disponibilidad
+            </p>
+
+            <div className="space-y-4 max-w-lg mx-auto">
+              {availableBarbers.map((barber) => (
+                <button
+                  key={barber.id}
+                  onClick={() => updateBooking({ barber, time: null })}
+                  className={`card-premium w-full text-left flex items-center gap-4 ${
+                    booking.barber?.id === barber.id ? "card-selected" : ""
+                  }`}
+                >
+                  <div className="w-16 h-16 rounded-xl gradient-gold flex items-center justify-center">
+                    <Scissors className="w-8 h-8 text-primary-foreground" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg">{barber.name}</h3>
+                    <p className="text-muted-foreground text-sm">{barber.specialty}</p>
+                    <div className="flex items-center gap-4 mt-1 text-sm">
+                      <span className="flex items-center gap-1">
+                        <Star className="w-4 h-4 fill-primary text-primary" />
+                        <span className="text-primary font-medium">{barber.rating}</span>
+                      </span>
+                      <span className="text-muted-foreground">{barber.experience} exp.</span>
+                    </div>
+                  </div>
+                  {booking.barber?.id === barber.id && (
+                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                      <Check className="w-5 h-5 text-primary-foreground" />
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 3:
         return (
           <div className="slide-up">
             <h2 className="font-display text-3xl font-bold text-center mb-2">
@@ -290,7 +494,7 @@ _Confirmación pendiente_`;
           </div>
         );
 
-      case 2:
+      case 4:
         return (
           <div className="slide-up">
             <h2 className="font-display text-3xl font-bold text-center mb-2">
@@ -309,11 +513,14 @@ _Confirmación pendiente_`;
                 }`}
               >
                 <div className="w-20 h-20 rounded-2xl bg-secondary flex items-center justify-center mx-auto mb-4">
-                  <MapPin className="w-10 h-10 text-primary" />
+                  <Building2 className="w-10 h-10 text-primary" />
                 </div>
                 <h3 className="font-display text-2xl font-semibold mb-2">En la Barbería</h3>
-                <p className="text-muted-foreground">
-                  Visítanos en nuestro local con ambiente premium
+                <p className="text-muted-foreground text-sm mb-2">
+                  {booking.barbershop?.name}
+                </p>
+                <p className="text-muted-foreground text-xs">
+                  {booking.barbershop?.address}
                 </p>
                 {booking.modality === "barbershop" && (
                   <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center mx-auto mt-4">
@@ -337,7 +544,7 @@ _Confirmación pendiente_`;
                 </div>
                 <h3 className="font-display text-2xl font-semibold mb-2">A Domicilio</h3>
                 <p className="text-muted-foreground">
-                  Llevamos la experiencia barbería a tu puerta
+                  Llevamos la experiencia a tu puerta
                 </p>
                 <p className="text-primary text-sm mt-2 font-medium">
                   +$10 cargo por servicio
@@ -352,14 +559,17 @@ _Confirmación pendiente_`;
           </div>
         );
 
-      case 3:
+      case 5:
         return (
           <div className="slide-up">
             <h2 className="font-display text-3xl font-bold text-center mb-2">
               Elige <span className="gold-text">Fecha y Hora</span>
             </h2>
-            <p className="text-muted-foreground text-center mb-8">
-              Selecciona el momento perfecto para tu cita
+            <p className="text-muted-foreground text-center mb-2">
+              Disponibilidad de {booking.barber?.name}
+            </p>
+            <p className="text-primary text-center text-sm mb-8">
+              Horarios según agenda del barbero
             </p>
 
             {/* Date Selection */}
@@ -395,8 +605,8 @@ _Confirmación pendiente_`;
                 <Clock className="w-5 h-5 text-primary" />
                 Hora Disponible
               </h3>
-              <div className="grid grid-cols-4 md:grid-cols-6 gap-3">
-                {timeSlots.map((time) => (
+              <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
+                {availableTimeSlots.map((time) => (
                   <button
                     key={time}
                     onClick={() => updateBooking({ time })}
@@ -410,11 +620,16 @@ _Confirmación pendiente_`;
                   </button>
                 ))}
               </div>
+              {availableTimeSlots.length === 0 && (
+                <p className="text-muted-foreground text-center py-8">
+                  Selecciona un barbero para ver horarios disponibles
+                </p>
+              )}
             </div>
           </div>
         );
 
-      case 4:
+      case 6:
         return (
           <div className="slide-up max-w-md mx-auto">
             <h2 className="font-display text-3xl font-bold text-center mb-2">
@@ -473,7 +688,7 @@ _Confirmación pendiente_`;
           </div>
         );
 
-      case 5:
+      case 7:
         return (
           <div className="slide-up max-w-md mx-auto">
             <div className="text-center mb-8">
@@ -489,6 +704,14 @@ _Confirmación pendiente_`;
             </div>
 
             <div className="card-premium space-y-4 mb-8">
+              {/* Barbershop & Barber */}
+              <div className="pb-4 border-b border-border">
+                <p className="text-muted-foreground text-sm">Sucursal</p>
+                <p className="font-semibold">{booking.barbershop?.name}</p>
+                <p className="text-muted-foreground text-sm mt-2">Barbero</p>
+                <p className="font-semibold text-primary">{booking.barber?.name}</p>
+              </div>
+
               {/* Service */}
               <div className="flex justify-between items-start pb-4 border-b border-border">
                 <div>
@@ -515,7 +738,7 @@ _Confirmación pendiente_`;
                       </>
                     ) : (
                       <>
-                        <MapPin className="w-4 h-4 text-primary" />
+                        <Building2 className="w-4 h-4 text-primary" />
                         En Barbería
                       </>
                     )}
@@ -591,25 +814,25 @@ _Confirmación pendiente_`;
                 Atrás
               </button>
               <span className="text-sm text-muted-foreground">
-                Paso {currentStep} de 5
+                Paso {currentStep} de {TOTAL_STEPS}
               </span>
             </div>
 
             {/* Step Indicators */}
-            <div className="flex items-center justify-center gap-2">
-              {[1, 2, 3, 4, 5].map((step) => (
+            <div className="flex items-center justify-center gap-1.5">
+              {Array.from({ length: TOTAL_STEPS }, (_, i) => i + 1).map((step) => (
                 <div
                   key={step}
-                  className={`step-indicator ${
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all duration-300 ${
                     step === currentStep
-                      ? "step-active"
+                      ? "bg-primary text-primary-foreground"
                       : step < currentStep
-                      ? "step-completed"
-                      : "step-pending"
+                      ? "bg-primary/20 text-primary border border-primary"
+                      : "bg-muted text-muted-foreground"
                   }`}
                 >
                   {step < currentStep ? (
-                    <Check className="w-4 h-4" />
+                    <Check className="w-3 h-3" />
                   ) : (
                     step
                   )}
@@ -626,7 +849,7 @@ _Confirmación pendiente_`;
       </main>
 
       {/* Footer Navigation */}
-      {currentStep > 0 && currentStep < 5 && (
+      {currentStep > 0 && currentStep < TOTAL_STEPS && (
         <footer className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-xl border-t border-border p-4">
           <div className="container mx-auto max-w-md">
             <button
